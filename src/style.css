@@ -12,6 +12,7 @@ body {
 
 header {
   position: fixed;
+  width: calc(100% - 40px);
 }
 
 .search-filter {
@@ -24,28 +25,31 @@ header {
   gap: 10px;
 }
 
-@media (max-width: 500px) {
-  .search-filter {
-    flex-direction: column;
-  }
-
-  .search-filter input,
-  .search-filter select {
-    width: 100%;
-  }
-}
-
-.search-filter input,
+.search-field,
 .search-filter select {
-  padding: 10px;
-  font-size: 16px;
+  padding: 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 
+.search-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.search-filter input {
+  outline: none;
+  border: none;
+}
+
 button {
-  padding: 10px;
-  border: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  border: 1px solid #ddd;
   border-radius: 4px;
   outline: none;
   cursor: pointer;
@@ -61,10 +65,15 @@ button > svg {
   height: 24px;
 }
 
+.search-field > svg {
+  width: 20px;
+  height: 20px;
+}
+
 .movie-grid {
   padding-top: 60px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 10px;
 }
 
@@ -116,4 +125,19 @@ button > svg {
 .movie-card.selected {
   outline: 3px solid rgb(243, 156, 18);
   background-color: rgb(243 156 18 / 0.3);
+}
+
+@media (max-width: 600px) {
+  .search-filter {
+    flex-direction: column;
+  }
+
+  .search-field,
+  .search-filter select {
+    width: 100%;
+  }
+
+  .movie-grid {
+    padding-top: 100px;
+  }
 }

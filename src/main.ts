@@ -112,13 +112,13 @@ function createMovieCard(movieGrid: HTMLDivElement, movie: Movie, selectedMovies
   const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.movieId === movie.id);
   if (isSelected) movieCard.classList.add("selected");
 
-  movieCard.innerHTML = `<img src="${movie.image}" alt="${movie.title} poster">`;
-  movieCard.addEventListener("click", () => toggleMovieSelection(movieCard, movie.id, movie.title));
+  movieCard.innerHTML = `<img src="${movie.image}" alt="${movie.title} poster" loading="lazy">`;
+  movieCard.addEventListener("click", () => toggleMovieSelection(movieCard, movie.id, movie.title, movie.year));
 
   movieGrid.appendChild(movieCard);
 }
 
-async function toggleMovieSelection(movieCard: HTMLDivElement, movieId: string, movieTitle: string) {
+async function toggleMovieSelection(movieCard: HTMLDivElement, movieId: string, movieTitle: string, movieYear: number) {
   const selectedMovies = await db.selected.toArray();
   const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.movieId === movieId);
 
@@ -127,7 +127,7 @@ async function toggleMovieSelection(movieCard: HTMLDivElement, movieId: string, 
     await db.selected.where("movieId").equals(movieId).delete();
   } else {
     movieCard.classList.add("selected");
-    await db.selected.add({ movieId, title: movieTitle });
+    await db.selected.add({ movieId, title: movieTitle, year: movieYear });
   }
 
   updateSelectedMoviesBox(await db.selected.toArray());
@@ -146,7 +146,7 @@ async function updateSelectedMoviesBox(selectedMovies: Selected[]) {
     selectedMoviesBox.innerHTML = `
       <h3>Selected Movies:</h3>
       <ul>
-        ${selectedMovies.map((movie) => `<li>${movie.title}</li>`).join("")}
+        ${selectedMovies.map((movie) => `<li>${movie.title} (${movie.year})</li>`).join("")}
       </ul>
     `;
   } else {

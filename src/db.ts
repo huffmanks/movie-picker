@@ -21,6 +21,7 @@ interface Selected {
   id: string;
   movieId: string;
   title: string;
+  year: number;
 }
 
 const db = new Dexie("MoviesDatabase") as Dexie & {
@@ -30,7 +31,7 @@ const db = new Dexie("MoviesDatabase") as Dexie & {
 
 db.version(1).stores({
   movies: "id, title, year, description, image, runtime, premiered, genre, tag, rating, actors",
-  selected: "++id, movieId, title",
+  selected: "++id, movieId, title, year",
 });
 
 const seedDatabase = async () => {
