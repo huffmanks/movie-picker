@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const sortOptions = document.getElementById("sortOptions") as HTMLSelectElement;
   const bookmarkBtn = document.getElementById("bookmark-btn") as HTMLButtonElement;
   const resetBtn = document.getElementById("reset-btn") as HTMLButtonElement;
-  const copyBtn = document.getElementById("copy-btn") as HTMLElement;
 
   searchInput.addEventListener(
     "input",
@@ -31,7 +30,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   sortOptions.addEventListener("change", () => filterMovies(movies, fuse));
   bookmarkBtn.addEventListener("click", toggleShowBookmarked);
   resetBtn.addEventListener("click", () => reset(movies));
-  copyBtn.addEventListener("click", copyListText);
 });
 
 async function initializeDatabase() {
@@ -57,8 +55,9 @@ async function reset(movies: Movie[]) {
 }
 
 function copyListText() {
-  console.log("happened");
+  const copyBtn = document.getElementById("copy-btn") as HTMLButtonElement;
   const listItems = Array.from(document.querySelectorAll("#selectedMoviesBox li")) as HTMLLIElement[];
+  copyBtn.disabled = true;
 
   const textToCopy = Array.from(listItems)
     .map((li) => li.textContent)
@@ -72,6 +71,8 @@ function copyListText() {
     .catch((err) => {
       console.error("Failed to copy text: ", err);
     });
+
+  copyBtn.disabled = false;
 }
 
 async function fetchMovies() {
@@ -120,9 +121,13 @@ function populateGenres(movies: Movie[]) {
 
 async function displayMovies(movies: Movie[], selectedMovies: Selected[]) {
   const movieGrid = document.getElementById("movieGrid") as HTMLDivElement;
+  const resultCount = document.getElementById("resultCount") as HTMLDivElement;
+
   movieGrid.innerHTML = "";
   movies.map((movie) => createMovieCard(movieGrid, movie, selectedMovies));
   updateSelectedMoviesBox(selectedMovies);
+
+  resultCount.textContent = `Showing ${movies.length} results`;
 }
 
 function createMovieCard(movieGrid: HTMLDivElement, movie: Movie, selectedMovies: Selected[]) {
@@ -178,6 +183,9 @@ async function updateSelectedMoviesBox(selectedMovies: Selected[]) {
         ${selectedMovies.map((movie) => `<li>${movie.title} (${movie.year})</li>`).join("")}
       </ul>
     `;
+
+    const copyBtn = document.getElementById("copy-btn") as HTMLButtonElement;
+    copyBtn.addEventListener("click", copyListText);
   } else {
     selectedMoviesBox.classList.remove("show");
   }

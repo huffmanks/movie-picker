@@ -26,9 +26,19 @@ header {
   backdrop-filter: blur(5px);
 }
 
-h1 {
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 5px 25px;
   padding-bottom: 10px;
+}
+
+h1 {
   text-shadow: 1px 1px 2px black;
+}
+
+.result-count {
+  color: #ccc;
 }
 
 .search-filter {
@@ -79,7 +89,8 @@ button {
 
 button:disabled {
   opacity: 0.6;
-  cursor: not-allowed;
+  cursor: default;
+  pointer-events: none;
 }
 
 button > svg {
@@ -91,6 +102,22 @@ button:hover,
 button:focus-within {
   background-color: #fefefe;
   color: #111;
+}
+
+.bookmark-btn svg.show {
+  display: block;
+}
+
+.bookmark-btn svg.hide {
+  display: none;
+}
+
+.bookmark-btn:disabled svg.show {
+  display: none;
+}
+
+.bookmark-btn:disabled svg.hide {
+  display: block;
 }
 
 .search-field > svg {
@@ -167,6 +194,10 @@ button:focus-within {
 .selected-movies-box li {
   margin-bottom: 5px;
   font-size: 15px;
+  width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-shadow: 1px 1px 2px black;
 }
 
@@ -193,5 +224,11 @@ button:focus-within {
 
   .movie-grid {
     padding-top: 160px;
+  }
+}
+
+@media (max-width: 500px) {
+  .header-title {
+    flex-direction: column;
   }
 }
