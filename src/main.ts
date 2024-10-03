@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const sortOptions = document.getElementById("sortOptions") as HTMLSelectElement;
   const bookmarkBtn = document.getElementById("bookmark-btn") as HTMLButtonElement;
   const resetBtn = document.getElementById("reset-btn") as HTMLButtonElement;
+  const copyBtn = document.getElementById("copy-btn") as HTMLElement;
 
   searchInput.addEventListener(
     "input",
@@ -30,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   sortOptions.addEventListener("change", () => filterMovies(movies, fuse));
   bookmarkBtn.addEventListener("click", toggleShowBookmarked);
   resetBtn.addEventListener("click", () => reset(movies));
+  copyBtn.addEventListener("click", copyListText);
 });
 
 async function initializeDatabase() {
@@ -52,6 +54,24 @@ async function reset(movies: Movie[]) {
 
   await db.selected.clear();
   displayMovies(movies, []);
+}
+
+function copyListText() {
+  console.log("happened");
+  const listItems = Array.from(document.querySelectorAll("#selectedMoviesBox li")) as HTMLLIElement[];
+
+  const textToCopy = Array.from(listItems)
+    .map((li) => li.textContent)
+    .join("\n");
+
+  navigator.clipboard
+    .writeText(textToCopy)
+    .then(() => {
+      console.log("Copy success");
+    })
+    .catch((err) => {
+      console.error("Failed to copy text: ", err);
+    });
 }
 
 async function fetchMovies() {
@@ -119,6 +139,7 @@ function createMovieCard(movieGrid: HTMLDivElement, movie: Movie, selectedMovies
 }
 
 async function toggleMovieSelection(movieCard: HTMLDivElement, movieId: string, movieTitle: string, movieYear: number) {
+  movieCard.style.pointerEvents = "none";
   const selectedMovies = await db.selected.toArray();
   const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.movieId === movieId);
 
@@ -131,6 +152,7 @@ async function toggleMovieSelection(movieCard: HTMLDivElement, movieId: string, 
   }
 
   updateSelectedMoviesBox(await db.selected.toArray());
+  movieCard.style.pointerEvents = "auto";
 }
 
 async function updateSelectedMoviesBox(selectedMovies: Selected[]) {
@@ -144,7 +166,14 @@ async function updateSelectedMoviesBox(selectedMovies: Selected[]) {
   if (isSelectedMovies) {
     selectedMoviesBox.classList.add("show");
     selectedMoviesBox.innerHTML = `
-      <h3>Selected Movies:</h3>
+      <div class="selected-header">
+        <h3>Selected</h3>
+        <button id="copy-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+          </svg>
+        </button>
+      </div>
       <ul>
         ${selectedMovies.map((movie) => `<li>${movie.title} (${movie.year})</li>`).join("")}
       </ul>
