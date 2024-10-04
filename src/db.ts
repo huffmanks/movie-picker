@@ -52,15 +52,23 @@ db.version(3).stores({
   selected: "++id, refId, title, year",
 });
 
-const seedDatabase = async () => {
+const seedMoviesDatabase = async () => {
   try {
     await db.movies.bulkPut(movieList);
-    await db.tvShows.bulkPut(tvShowList);
-    console.log("Database seeded successfully");
+    console.log("Movies seeded successfully");
   } catch (error) {
-    console.error("Failed to seed database:", error);
+    console.error("Failed to seed movies to database:", error);
+  }
+};
+
+const seedTvShowsDatabase = async () => {
+  try {
+    await db.tvShows.bulkPut(tvShowList);
+    console.log("TV Shows seeded successfully");
+  } catch (error) {
+    console.error("Failed to seed TV Shows to database:", error);
   }
 };
 
 export type { Movie, TvShow, Selected };
-export { db, seedDatabase };
+export { db, seedMoviesDatabase, seedTvShowsDatabase };

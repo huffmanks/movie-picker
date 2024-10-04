@@ -1,4 +1,4 @@
-import { Movie, TvShow, Selected, db, seedDatabase } from "./db";
+import { Movie, TvShow, Selected, db, seedMoviesDatabase, seedTvShowsDatabase } from "./db";
 import "./style.css";
 import Fuse, { FuseResult } from "fuse.js";
 
@@ -62,7 +62,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function initializeDatabase() {
-  if ((await db.movies.count()) === 0) await seedDatabase();
+  if ((await db.movies.count()) === 0) await seedMoviesDatabase();
+  if ((await db.tvShows.count()) === 0) await seedTvShowsDatabase();
 }
 
 function scrollToTop() {
