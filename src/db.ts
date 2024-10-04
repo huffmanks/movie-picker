@@ -46,7 +46,7 @@ const db = new Dexie("MoviesDatabase") as Dexie & {
   selected: EntityTable<Selected, "id">;
 };
 
-db.version(2).stores({
+db.version(3).stores({
   movies: "id, title, year, description, image, runtime, premiered, genre, tag, rating, actors",
   tvShows: "id, title, year, description, image, runtime, premiered, genre, tag, rating, actors",
   selected: "++id, refId, title, year",
