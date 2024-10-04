@@ -62,5 +62,5 @@ const seedDatabase = async () => {
   }
 };
 
-export type { Movie, Selected };
+export type { Movie, TvShow, Selected };
 export { db, seedDatabase };

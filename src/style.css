@@ -113,20 +113,20 @@ button:focus-within {
   height: 20px;
 }
 
-.movie-grid {
+.content-grid {
   padding-top: 120px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 10px;
 }
 
-.movie-card {
+.content-card {
   border-radius: 10px;
   overflow: hidden;
   user-select: none;
 }
 
-.movie-card img {
+.content-card img {
   display: block;
   width: 100%;
   height: auto;
@@ -134,7 +134,7 @@ button:focus-within {
   aspect-ratio: 2 / 3;
 }
 
-.selected-movies-box {
+.selected-box {
   position: fixed;
   bottom: 20px;
   right: -1500px;
@@ -165,21 +165,21 @@ button:focus-within {
   height: 20px;
 }
 
-.selected-movies-box.show {
+.selected-box.show {
   right: 20px;
 }
 
-.selected-movies-box h3 {
+.selected-box h3 {
   font-size: 16px;
   text-shadow: 1px 1px 2px black;
 }
 
-.selected-movies-box ul {
+.selected-box ul {
   list-style: none;
   padding: 0;
 }
 
-.selected-movies-box li {
+.selected-box li {
   margin-bottom: 5px;
   font-size: 15px;
   overflow: hidden;
@@ -188,13 +188,13 @@ button:focus-within {
   text-shadow: 1px 1px 2px black;
 }
 
-.movie-card.selected {
+.content-card.selected {
   outline: 3px solid rgb(243, 156, 18);
   background-color: rgb(243 156 18 / 0.3);
 }
 
 @media (max-width: 800px) {
-  .movie-grid {
+  .content-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   }
 }
@@ -209,7 +209,7 @@ button:focus-within {
     width: 100%;
   }
 
-  .movie-grid {
+  .content-grid {
     padding-top: 160px;
   }
 }

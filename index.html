@@ -5,22 +5,26 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Movie Picker</title>
+  <title>Content Picker</title>
 </head>
 
 <body>
   <header>
     <div class="header-wrapper glass">
       <div class="header-title">
-        <h1>Movie Picker</h1>
-        <div id="resultCount" class="result-count"></div>
+        <h1 id="picker-title">Movie Picker</h1>
+        <div id="result-count" class="result-count"></div>
       </div>
       <div class="search-filter">
         <div>
-          <select id="genreFilter">
+          <select id="content-type-toggle" sele>
+            <option value="movies" selected>Movies</option>
+            <option value="tvShows">TV Shows</option>
+          </select>
+          <select id="genre-filter">
             <option value="">All Genres</option>
           </select>
-          <select id="sortOptions">
+          <select id="sort-options">
             <option value="title">Sort by Title</option>
             <option value="year">Sort by Year</option>
             <option value="rating">Sort by Rating</option>
@@ -28,7 +32,7 @@
         </div>
         <div>
           <div class="search-field">
-            <input type="text" id="search" placeholder="Search title, actor...">
+            <input type="text" id="search-input" placeholder="Search title, actor...">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
             </svg>
@@ -51,10 +55,10 @@
       </div>
     </div>
   </header>
-  <div id="selectedMoviesBox" class="selected-movies-box glass show">
+  <div id="selected-box" class="selected-box glass show">
     <h3>Nothing selected</h3>
   </div>
-  <div id="movieGrid" class="movie-grid"></div>
+  <div id="content-grid" class="content-grid"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 

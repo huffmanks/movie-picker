@@ -1,4 +1,4 @@
-import { Movie, Selected, db, seedDatabase } from "./db";
+import { Movie, TvShow, Selected, db, seedDatabase } from "./db";
 import "./style.css";
 import Fuse, { FuseResult } from "fuse.js";
 
@@ -21,12 +21,17 @@ function debounceWithBlur(func: Function, debounceDelay: number, blurDelay: numb
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeDatabase();
 
-  const { movies, fuse } = await fetchMovies();
-  if (!fuse) return;
+  const contentTypeToggle = document.getElementById("content-type-toggle") as HTMLSelectElement;
+  let currentContentType = "movies";
 
-  const searchInput = document.getElementById("search") as HTMLInputElement;
-  const genreFilter = document.getElementById("genreFilter") as HTMLSelectElement;
-  const sortOptions = document.getElementById("sortOptions") as HTMLSelectElement;
+  const { movies, tvShows, movieFuse, tvShowFuse } = await fetchContent();
+
+  let content: Movie[] | TvShow[] = movies as Movie[];
+  let fuse: Fuse<Movie> | Fuse<TvShow> | null = movieFuse as Fuse<Movie>;
+
+  const searchInput = document.getElementById("search-input") as HTMLInputElement;
+  const genreFilter = document.getElementById("genre-filter") as HTMLSelectElement;
+  const sortOptions = document.getElementById("sort-options") as HTMLSelectElement;
   const bookmarkBtn = document.getElementById("bookmark-btn") as HTMLButtonElement;
   const scrollBtn = document.getElementById("scroll-btn") as HTMLButtonElement;
   const resetBtn = document.getElementById("reset-btn") as HTMLButtonElement;
@@ -35,12 +40,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   searchInput.addEventListener("focus", scrollToTop);
   searchInput.addEventListener(
     "input",
-    debounceWithBlur(() => filterMovies(movies, fuse, true), 100, 3000, searchInput)
+    debounceWithBlur(() => filterContent(content, fuse!, true), 100, 3000, searchInput)
   );
-  genreFilter.addEventListener("change", () => filterMovies(movies, fuse));
-  sortOptions.addEventListener("change", () => filterMovies(movies, fuse));
+  genreFilter.addEventListener("change", () => filterContent(content, fuse!));
+  sortOptions.addEventListener("change", () => filterContent(content, fuse!));
   bookmarkBtn.addEventListener("click", toggleShowBookmarked);
-  resetBtn.addEventListener("click", () => reset(movies));
+  resetBtn.addEventListener("click", () => reset(content));
+
+  contentTypeToggle.addEventListener("change", async () => {
+    currentContentType = contentTypeToggle.value;
+    content = currentContentType === "movies" ? movies : tvShows;
+    fuse = currentContentType === "movies" ? movieFuse : tvShowFuse;
+
+    const pickerTitle = document.getElementById("picker-title") as HTMLHeadingElement;
+    pickerTitle.textContent = currentContentType === "movies" ? "Movie Picker" : "TV Show Picker";
+
+    populateGenres(content);
+
+    await filterContent(content, fuse!);
+  });
 });
 
 async function initializeDatabase() {
@@ -51,25 +69,25 @@ function scrollToTop() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-async function reset(movies: Movie[]) {
-  const searchInput = document.getElementById("search") as HTMLInputElement;
-  const genreFilter = document.getElementById("genreFilter") as HTMLSelectElement;
-  const sortOptions = document.getElementById("sortOptions") as HTMLSelectElement;
-  const movieCards = Array.from(document.querySelectorAll(".movie-card")) as HTMLDivElement[];
+async function reset(content: Movie[] | TvShow[]) {
+  const searchInput = document.getElementById("search-input") as HTMLInputElement;
+  const genreFilter = document.getElementById("genre-filter") as HTMLSelectElement;
+  const sortOptions = document.getElementById("sort-options") as HTMLSelectElement;
+  const contentCards = Array.from(document.querySelectorAll(".content-card")) as HTMLDivElement[];
 
-  movieCards.forEach((card) => card.classList.remove("selected"));
+  contentCards.forEach((card) => card.classList.remove("selected"));
 
   searchInput.value = "";
   genreFilter.selectedIndex = 0;
   sortOptions.selectedIndex = 0;
 
   await db.selected.clear();
-  displayMovies(movies, []);
+  displayContent(content, []);
 }
 
 function copyListText() {
   const copyBtn = document.getElementById("copy-btn") as HTMLButtonElement;
-  const listItems = Array.from(document.querySelectorAll("#selectedMoviesBox li")) as HTMLLIElement[];
+  const listItems = Array.from(document.querySelectorAll("#selected-box li")) as HTMLLIElement[];
   copyBtn.disabled = true;
 
   const textToCopy = Array.from(listItems)
@@ -88,23 +106,26 @@ function copyListText() {
   copyBtn.disabled = false;
 }
 
-async function fetchMovies() {
+async function fetchContent() {
   try {
     const movies = (await db.movies.toArray()).sort((a, b) => a.title.localeCompare(b.title));
-    const selectedMovies = await db.selected.toArray();
+    const tvShows = (await db.tvShows.toArray()).sort((a, b) => a.title.localeCompare(b.title));
+    const selectedContent = await db.selected.toArray();
 
-    const fuse = initFuse(movies);
+    const movieFuse = initFuse(movies);
+    const tvShowFuse = initFuse(tvShows);
+
     populateGenres(movies);
-    displayMovies(movies, selectedMovies);
+    displayContent(movies, selectedContent);
 
-    return { movies, selectedMovies, fuse };
+    return { movies, tvShows, movieFuse, tvShowFuse };
   } catch (error) {
-    console.error("Error fetching movies:", error);
-    return { movies: [], selectedMovies: [], fuse: null };
+    console.error("Error fetching", error);
+    return { movies: [], tvShows: [], movieFuse: null, tvShowFuse: null };
   }
 }
 
-function initFuse(movies: Movie[]) {
+function initFuse(content: Movie[] | TvShow[]) {
   const fuseOptions = {
     keys: [
       { name: "title", weight: 0.7 },
@@ -114,12 +135,14 @@ function initFuse(movies: Movie[]) {
     ],
     threshold: 0.3,
   };
-  return new Fuse(movies, fuseOptions);
+  return new Fuse(content, fuseOptions);
 }
 
-function populateGenres(movies: Movie[]) {
-  const genreFilter = document.getElementById("genreFilter") as HTMLSelectElement;
-  const genres = [...new Set(movies.flatMap((movie) => movie.genre))].sort();
+function populateGenres(content: Movie[] | TvShow[]) {
+  const genreFilter = document.getElementById("genre-filter") as HTMLSelectElement;
+  const genres = [...new Set(content.flatMap((item) => item.genre))].sort();
+
+  genreFilter.innerHTML = `<option value="">All Genres</option>`;
 
   genres.forEach((genre) => {
     const option = document.createElement("option");
@@ -129,54 +152,54 @@ function populateGenres(movies: Movie[]) {
   });
 }
 
-async function displayMovies(movies: Movie[], selectedMovies: Selected[]) {
-  const movieGrid = document.getElementById("movieGrid") as HTMLDivElement;
-  const resultCount = document.getElementById("resultCount") as HTMLDivElement;
+async function displayContent(content: Movie[] | TvShow[], selectedContent: Selected[]) {
+  const contentGrid = document.getElementById("content-grid") as HTMLDivElement;
+  const resultCount = document.getElementById("result-count") as HTMLDivElement;
 
-  movieGrid.innerHTML = "";
-  movies.map((movie) => createMovieCard(movieGrid, movie, selectedMovies));
-  updateSelectedMoviesBox(selectedMovies);
+  contentGrid.innerHTML = "";
+  content.map((content) => createContentCard(contentGrid, content, selectedContent));
+  updateSelectedBox(selectedContent);
 
-  resultCount.textContent = `Showing ${movies.length} results`;
+  resultCount.textContent = `Showing ${content.length} results`;
 }
 
-function createMovieCard(movieGrid: HTMLDivElement, movie: Movie, selectedMovies: Selected[]) {
-  const movieCard = document.createElement("div");
-  movieCard.classList.add("movie-card");
+function createContentCard(contentGrid: HTMLDivElement, content: Movie | TvShow, selectedContent: Selected[]) {
+  const contentCard = document.createElement("div");
+  contentCard.classList.add("content-card");
 
-  const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.refId === movie.id);
-  if (isSelected) movieCard.classList.add("selected");
+  const isSelected = selectedContent.some((selectedItem) => selectedItem.refId === content.id);
+  if (isSelected) contentCard.classList.add("selected");
 
-  movieCard.innerHTML = `<img src="${movie.image}" alt="${movie.title} poster" loading="lazy">`;
-  movieCard.addEventListener("click", () => toggleMovieSelection(movieCard, movie.id, movie.title, movie.year));
+  contentCard.innerHTML = `<img src="${content.image}" alt="${content.title} poster" loading="lazy">`;
+  contentCard.addEventListener("click", () => toggleContentSelection(contentCard, content.id, content.title, content.year));
 
-  movieGrid.appendChild(movieCard);
+  contentGrid.appendChild(contentCard);
 }
 
-async function toggleMovieSelection(movieCard: HTMLDivElement, movieId: string, movieTitle: string, movieYear: number) {
-  movieCard.style.pointerEvents = "none";
-  const selectedMovies = await db.selected.toArray();
-  const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.refId === movieId);
+async function toggleContentSelection(contentCard: HTMLDivElement, contentId: string, contentTitle: string, contentYear: number) {
+  contentCard.style.pointerEvents = "none";
+  const selectedContent = await db.selected.toArray();
+  const isSelected = selectedContent.some((selectedItem) => selectedItem.refId === contentId);
 
   if (isSelected) {
-    movieCard.classList.remove("selected");
-    await db.selected.where("refId").equals(movieId).delete();
+    contentCard.classList.remove("selected");
+    await db.selected.where("refId").equals(contentId).delete();
   } else {
-    movieCard.classList.add("selected");
-    await db.selected.add({ refId: movieId, title: movieTitle, year: movieYear });
+    contentCard.classList.add("selected");
+    await db.selected.add({ refId: contentId, title: contentTitle, year: contentYear });
   }
 
-  updateSelectedMoviesBox(await db.selected.toArray());
-  movieCard.style.pointerEvents = "auto";
+  updateSelectedBox(await db.selected.toArray());
+  contentCard.style.pointerEvents = "auto";
 }
 
-async function updateSelectedMoviesBox(selectedMovies: Selected[]) {
-  const selectedMoviesBox = document.getElementById("selectedMoviesBox") as HTMLDivElement;
+async function updateSelectedBox(selectedContent: Selected[]) {
+  const selectedBox = document.getElementById("selected-box") as HTMLDivElement;
 
-  const isSelectedMovies = selectedMovies && selectedMovies.length > 0;
+  const isSelectedContent = selectedContent && selectedContent.length > 0;
 
-  if (isSelectedMovies) {
-    selectedMoviesBox.innerHTML = `
+  if (isSelectedContent) {
+    selectedBox.innerHTML = `
       <div class="selected-header">
         <h3>Selected</h3>
         <button id="copy-btn">
@@ -186,29 +209,29 @@ async function updateSelectedMoviesBox(selectedMovies: Selected[]) {
         </button>
       </div>
       <ul>
-        ${selectedMovies.map((movie) => `<li>${movie.title} (${movie.year})</li>`).join("")}
+        ${selectedContent.map((content) => `<li>${content.title} (${content.year})</li>`).join("")}
       </ul>
     `;
 
     const copyBtn = document.getElementById("copy-btn") as HTMLButtonElement;
     copyBtn.addEventListener("click", copyListText);
   } else {
-    selectedMoviesBox.innerHTML = `<h3>Nothing selected</h3>`;
+    selectedBox.innerHTML = `<h3>Nothing selected</h3>`;
   }
 }
 
 async function toggleShowBookmarked() {
-  const selectedMoviesBox = document.getElementById("selectedMoviesBox") as HTMLDivElement;
+  const selectedBox = document.getElementById("selected-box") as HTMLDivElement;
 
-  selectedMoviesBox.classList.toggle("show");
+  selectedBox.classList.toggle("show");
 }
 
-async function filterMovies(movies: Movie[], fuse: Fuse<Movie>, isSearch?: boolean) {
-  const searchQuery = (document.getElementById("search") as HTMLInputElement).value.toLowerCase();
-  const selectedGenre = (document.getElementById("genreFilter") as HTMLSelectElement).value;
-  const sortOption = (document.getElementById("sortOptions") as HTMLSelectElement).value;
+async function filterContent(content: Movie[] | TvShow[], fuse: Fuse<Movie | TvShow>, isSearch?: boolean) {
+  const searchQuery = (document.getElementById("search-input") as HTMLInputElement).value.toLowerCase();
+  const selectedGenre = (document.getElementById("genre-filter") as HTMLSelectElement).value;
+  const sortOption = (document.getElementById("sort-options") as HTMLSelectElement).value;
 
-  let results: FuseResult<Movie>[] = searchQuery ? fuse.search(searchQuery) : movies.map((movie, index) => ({ item: movie, refIndex: index }));
+  let results: FuseResult<Movie | TvShow>[] = searchQuery ? fuse.search(searchQuery) : content.map((item, index) => ({ item, refIndex: index }));
 
   if (selectedGenre) {
     results = results.filter((result) => result.item.genre.includes(selectedGenre));
@@ -217,13 +240,13 @@ async function filterMovies(movies: Movie[], fuse: Fuse<Movie>, isSearch?: boole
   const sortOptionValue = isSearch ? "search" : sortOption;
 
   const sortedResults = sortResults(results, sortOptionValue);
-  displayMovies(
+  displayContent(
     sortedResults.map((result) => result.item),
     await db.selected.toArray()
   );
 }
 
-function sortResults(results: FuseResult<Movie>[], sortOption: string): FuseResult<Movie>[] {
+function sortResults(results: FuseResult<Movie>[] | FuseResult<TvShow>[], sortOption: string): FuseResult<Movie>[] | FuseResult<TvShow>[] {
   return results.sort((a, b) => {
     switch (sortOption) {
       case "search":
