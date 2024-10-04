@@ -5,11 +5,11 @@ import xml2js from "xml2js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const nfosDir = path.join(__dirname, "public", "nfos");
-const outputJsonPath = path.join(__dirname, "src", "movies.json");
+const nfosDir = path.join(__dirname, "public", "tv-nfos");
+const outputJsonPath = path.join(__dirname, "src", "tv-shows.json");
 const logFilePath = path.join(__dirname, "failed_downloads.txt");
 
-interface Movie {
+interface TvShow {
   id: string;
   title: string;
   year: number;
@@ -24,8 +24,8 @@ interface Movie {
 }
 
 interface JsonData {
-  movie: {
-    id: string[];
+  tvshow: {
+    imdbid: string[];
     title: string[];
     year: string[];
     plot: string[];
@@ -101,7 +101,7 @@ const downloadImage = async (url: string, outputPath: string, title: string, yea
 };
 
 const processNfoFiles = async () => {
-  const movies: Movie[] = [];
+  const tvShows: TvShow[] = [];
 
   const nfoFiles = fs.readdirSync(nfosDir).filter((file) => file.endsWith(".nfo"));
 
@@ -111,33 +111,35 @@ const processNfoFiles = async () => {
     const xmlData = fs.readFileSync(filePath, "utf-8");
     const jsonData = (await parseXmlToJson(xmlData)) as JsonData;
 
-    const id = jsonData.movie.id[0];
-    const title = jsonData.movie.title[0];
+    console.log(jsonData.tvshow.title[0]);
+
+    const id = jsonData.tvshow.imdbid[0];
+    const title = jsonData.tvshow.title[0];
     const safeTitle = sanitizeTitle(title);
-    const year = Number(jsonData.movie.year[0]);
-    const description = jsonData.movie.plot[0];
-    const runtime = Number(jsonData.movie.runtime[0]);
-    const premiered = jsonData.movie.premiered[0];
-    const genre = jsonData.movie.genre;
-    const tag = jsonData.movie.tag || null;
-    const rating = Number(jsonData.movie.ratings[0].rating[0].value[0]);
-    const actors = jsonData.movie.actor?.map((item) => item.name[0]);
+    const year = Number(jsonData.tvshow.year[0]);
+    const description = jsonData.tvshow.plot[0];
+    const runtime = Number(jsonData.tvshow.runtime[0]);
+    const premiered = jsonData.tvshow.premiered[0];
+    const genre = jsonData.tvshow.genre;
+    const tag = jsonData.tvshow.tag || null;
+    const rating = Number(jsonData.tvshow.ratings[0].rating[0].value[0]);
+    const actors = jsonData.tvshow.actor?.map((item) => item.name[0]);
 
     const imageName = `${safeTitle} (${year}).jpg`;
-    const imagePath = path.join(__dirname, "public", "images", imageName);
+    const imagePath = path.join(__dirname, "public", "images", "tv-shows", imageName);
 
-    const imageUrl = replaceImageUrl(jsonData.movie.thumb[0]._);
+    const imageUrl = replaceImageUrl(jsonData.tvshow.thumb[0]._);
 
     await downloadImage(imageUrl, imagePath, safeTitle, year);
 
     await sleep(50);
 
-    const movieData = {
+    const tvShowData = {
       id,
       title,
       year,
       description,
-      image: `/images/${imageName}`,
+      image: `/images/tv-shows/${imageName}`,
       runtime,
       premiered,
       genre,
@@ -146,12 +148,12 @@ const processNfoFiles = async () => {
       actors,
     };
 
-    movies.push(movieData);
+    tvShows.push(tvShowData);
   }
 
-  fs.writeFileSync(outputJsonPath, JSON.stringify(movies, null, 2));
+  fs.writeFileSync(outputJsonPath, JSON.stringify(tvShows, null, 2));
 
-  console.log("Movies JSON generated successfully!");
+  console.log("TV Shows JSON generated successfully!");
 };
 
 await processNfoFiles();

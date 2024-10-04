@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "gen": "tsx gen.ts",
+    "gen": "tsx gen-tv.ts",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

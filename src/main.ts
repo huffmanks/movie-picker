@@ -2,11 +2,19 @@ import { Movie, Selected, db, seedDatabase } from "./db";
 import "./style.css";
 import Fuse, { FuseResult } from "fuse.js";
 
-function debounce(func: Function, delay: number) {
-  let timeoutId: NodeJS.Timeout;
+function debounceWithBlur(func: Function, debounceDelay: number, blurDelay: number, blurElement?: HTMLInputElement) {
+  let debounceTimeoutId: NodeJS.Timeout;
+  let blurTimeoutId: NodeJS.Timeout;
+
   return (...args: any[]) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func.apply(null, args), delay);
+    clearTimeout(debounceTimeoutId);
+
+    debounceTimeoutId = setTimeout(() => func.apply(null, args), debounceDelay);
+
+    if (blurElement) {
+      clearTimeout(blurTimeoutId);
+      blurTimeoutId = setTimeout(() => blurElement.blur(), blurDelay);
+    }
   };
 }
 
@@ -20,11 +28,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const genreFilter = document.getElementById("genreFilter") as HTMLSelectElement;
   const sortOptions = document.getElementById("sortOptions") as HTMLSelectElement;
   const bookmarkBtn = document.getElementById("bookmark-btn") as HTMLButtonElement;
+  const scrollBtn = document.getElementById("scroll-btn") as HTMLButtonElement;
   const resetBtn = document.getElementById("reset-btn") as HTMLButtonElement;
 
+  scrollBtn.addEventListener("click", scrollToTop);
+  searchInput.addEventListener("focus", scrollToTop);
   searchInput.addEventListener(
     "input",
-    debounce(() => filterMovies(movies, fuse, true), 100)
+    debounceWithBlur(() => filterMovies(movies, fuse, true), 100, 3000, searchInput)
   );
   genreFilter.addEventListener("change", () => filterMovies(movies, fuse));
   sortOptions.addEventListener("change", () => filterMovies(movies, fuse));
@@ -36,11 +47,14 @@ async function initializeDatabase() {
   if ((await db.movies.count()) === 0) await seedDatabase();
 }
 
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 async function reset(movies: Movie[]) {
   const searchInput = document.getElementById("search") as HTMLInputElement;
   const genreFilter = document.getElementById("genreFilter") as HTMLSelectElement;
   const sortOptions = document.getElementById("sortOptions") as HTMLSelectElement;
-  const bookmarkBtn = document.getElementById("bookmark-btn") as HTMLButtonElement;
   const movieCards = Array.from(document.querySelectorAll(".movie-card")) as HTMLDivElement[];
 
   movieCards.forEach((card) => card.classList.remove("selected"));
@@ -48,7 +62,6 @@ async function reset(movies: Movie[]) {
   searchInput.value = "";
   genreFilter.selectedIndex = 0;
   sortOptions.selectedIndex = 0;
-  bookmarkBtn.disabled = true;
 
   await db.selected.clear();
   displayMovies(movies, []);
@@ -79,9 +92,6 @@ async function fetchMovies() {
   try {
     const movies = (await db.movies.toArray()).sort((a, b) => a.title.localeCompare(b.title));
     const selectedMovies = await db.selected.toArray();
-    const bookmarkBtn = document.getElementById("bookmark-btn") as HTMLButtonElement;
-
-    bookmarkBtn.disabled = selectedMovies.length < 1;
 
     const fuse = initFuse(movies);
     populateGenres(movies);
@@ -134,7 +144,7 @@ function createMovieCard(movieGrid: HTMLDivElement, movie: Movie, selectedMovies
   const movieCard = document.createElement("div");
   movieCard.classList.add("movie-card");
 
-  const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.movieId === movie.id);
+  const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.refId === movie.id);
   if (isSelected) movieCard.classList.add("selected");
 
   movieCard.innerHTML = `<img src="${movie.image}" alt="${movie.title} poster" loading="lazy">`;
@@ -146,14 +156,14 @@ function createMovieCard(movieGrid: HTMLDivElement, movie: Movie, selectedMovies
 async function toggleMovieSelection(movieCard: HTMLDivElement, movieId: string, movieTitle: string, movieYear: number) {
   movieCard.style.pointerEvents = "none";
   const selectedMovies = await db.selected.toArray();
-  const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.movieId === movieId);
+  const isSelected = selectedMovies.some((selectedMovie) => selectedMovie.refId === movieId);
 
   if (isSelected) {
     movieCard.classList.remove("selected");
-    await db.selected.where("movieId").equals(movieId).delete();
+    await db.selected.where("refId").equals(movieId).delete();
   } else {
     movieCard.classList.add("selected");
-    await db.selected.add({ movieId, title: movieTitle, year: movieYear });
+    await db.selected.add({ refId: movieId, title: movieTitle, year: movieYear });
   }
 
   updateSelectedMoviesBox(await db.selected.toArray());
@@ -162,14 +172,10 @@ async function toggleMovieSelection(movieCard: HTMLDivElement, movieId: string, 
 
 async function updateSelectedMoviesBox(selectedMovies: Selected[]) {
   const selectedMoviesBox = document.getElementById("selectedMoviesBox") as HTMLDivElement;
-  const bookmarkBtn = document.getElementById("bookmark-btn") as HTMLButtonElement;
 
   const isSelectedMovies = selectedMovies && selectedMovies.length > 0;
 
-  bookmarkBtn.disabled = !isSelectedMovies;
-
   if (isSelectedMovies) {
-    selectedMoviesBox.classList.add("show");
     selectedMoviesBox.innerHTML = `
       <div class="selected-header">
         <h3>Selected</h3>
@@ -187,16 +193,13 @@ async function updateSelectedMoviesBox(selectedMovies: Selected[]) {
     const copyBtn = document.getElementById("copy-btn") as HTMLButtonElement;
     copyBtn.addEventListener("click", copyListText);
   } else {
-    selectedMoviesBox.classList.remove("show");
+    selectedMoviesBox.innerHTML = `<h3>Nothing selected</h3>`;
   }
 }
 
 async function toggleShowBookmarked() {
-  const selectedMovies = await db.selected.toArray();
   const selectedMoviesBox = document.getElementById("selectedMoviesBox") as HTMLDivElement;
-  const bookmarkBtn = document.getElementById("bookmark-btn") as HTMLButtonElement;
 
-  bookmarkBtn.disabled = selectedMovies.length < 1;
   selectedMoviesBox.classList.toggle("show");
 }
 
